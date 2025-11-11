@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 
 interface KanjiCanvasProps {
@@ -102,9 +101,11 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw }, re
 
   return (
     <div className="w-full aspect-square bg-white rounded-2xl shadow-lg p-2 relative">
-      <div className="absolute inset-0 flex justify-center items-center pointer-events-none">
-        <div className="w-full h-[2px] bg-gray-200"></div>
-        <div className="h-full w-[2px] bg-gray-200"></div>
+      <div className="absolute inset-2 pointer-events-none">
+        {/* Horizontal line */}
+        <div className="absolute top-1/2 left-0 w-full h-[2px] bg-gray-200 -translate-y-1/2"></div>
+        {/* Vertical line */}
+        <div className="absolute top-0 left-1/2 h-full w-[2px] bg-gray-200 -translate-x-1/2"></div>
       </div>
       <canvas
         ref={canvasRef}

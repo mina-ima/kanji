@@ -1,0 +1,5 @@
+{
+  "name": "Kanji Practice Pad for Kids",
+  "description": "A fun and interactive web application for elementary school students to learn and practice Japanese Kanji through handwriting. Features a practice mode to learn characters and a test mode to challenge their knowledge with AI-powered handwriting recognition.",
+  "requestFramePermissions": []
+}

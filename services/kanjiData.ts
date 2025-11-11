@@ -1,0 +1,30 @@
+
+import type { Kanji } from '../types';
+
+export const grade1Kanji: Kanji[] = [
+  { character: '一', grade: 1, reading: 'いち', meaning: 'One' },
+  { character: '二', grade: 1, reading: 'に', meaning: 'Two' },
+  { character: '三', grade: 1, reading: 'さん', meaning: 'Three' },
+  { character: '四', grade: 1, reading: 'し', meaning: 'Four' },
+  { character: '五', grade: 1, reading: 'ご', meaning: 'Five' },
+  { character: '六', grade: 1, reading: 'ろく', meaning: 'Six' },
+  { character: '七', grade: 1, reading: 'しち', meaning: 'Seven' },
+  { character: '八', grade: 1, reading: 'はち', meaning: 'Eight' },
+  { character: '九', grade: 1, reading: 'きゅう', meaning: 'Nine' },
+  { character: '十', grade: 1, reading: 'じゅう', meaning: 'Ten' },
+  { character: '日', grade: 1, reading: 'にち', meaning: 'Day, Sun' },
+  { character: '月', grade: 1, reading: 'げつ', meaning: 'Month, Moon' },
+  { character: '火', grade: 1, reading: 'か', meaning: 'Fire' },
+  { character: '水', grade: 1, reading: 'すい', meaning: 'Water' },
+  { character: '木', grade: 1, reading: 'もく', meaning: 'Tree' },
+  { character: '金', grade: 1, reading: 'きん', meaning: 'Gold, Money' },
+  { character: '土', grade: 1, reading: 'ど', meaning: 'Earth, Soil' },
+  { character: '山', grade: 1, reading: 'やま', meaning: 'Mountain' },
+  { character: '川', grade: 1, reading: 'かわ', meaning: 'River' },
+  { character: '田', grade: 1, reading: 'た', meaning: 'Rice Paddy' },
+  { character: '人', grade: 1, reading: 'ひと', meaning: 'Person' },
+  { character: '口', grade: 1, reading: 'くち', meaning: 'Mouth' },
+  { character: '車', grade: 1, reading: 'くるま', meaning: 'Car' },
+  { character: '門', grade: 1, reading: 'もん', meaning: 'Gate' },
+  { character: '年', grade: 1, reading: 'ねん', meaning: 'Year' },
+];

@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 
 interface KanjiCanvasProps {
@@ -14,17 +13,63 @@ export interface KanjiCanvasRef {
   isCanvasEmpty: () => boolean;
 }
 
+// Rainbow palette for stroke order
+const STROKE_COLORS = [
+  '#ef4444', // red-500
+  '#f97316', // orange-500
+  '#84cc16', // lime-500
+  '#10b981', // emerald-500
+  '#06b6d4', // cyan-500
+  '#3b82f6', // blue-500
+  '#8b5cf6', // violet-500
+  '#d946ef', // fuchsia-500
+];
+
 const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onStrokeStart, onStrokeEnd, guideCharacter }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const guideCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [svgPaths, setSvgPaths] = useState<string[] | null>(null);
+  
   // We store the context in a ref to access it in event handlers without re-renders
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const lastPos = useRef<{ x: number; y: number } | null>(null);
 
+  // Fetch KanjiVG data when guideCharacter changes
+  useEffect(() => {
+    if (!guideCharacter) {
+      setSvgPaths(null);
+      return;
+    }
+
+    const fetchKanjiData = async () => {
+      try {
+        // Convert character to hex unicode (e.g., 漢 -> 6f22)
+        const code = guideCharacter.charCodeAt(0).toString(16).toLowerCase().padStart(5, '0');
+        const url = `https://cdn.jsdelivr.net/npm/kanjivg@5/kanji/${code}.svg`;
+        
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Kanji data not found');
+        
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'image/svg+xml');
+        const paths = Array.from(doc.querySelectorAll('path')).map(p => p.getAttribute('d') || '');
+        
+        setSvgPaths(paths.filter(p => p !== ''));
+      } catch (e) {
+        console.warn('Failed to load stroke data, falling back to font:', e);
+        setSvgPaths(null);
+      }
+    };
+
+    fetchKanjiData();
+  }, [guideCharacter]);
+
+
   // Helper to draw the background grid and guide character
-  const drawGuide = (ctx: CanvasRenderingContext2D, width: number, height: number, char?: string) => {
+  const drawGuide = (ctx: CanvasRenderingContext2D, width: number, height: number, char?: string, paths?: string[] | null) => {
     ctx.clearRect(0, 0, width, height);
     
     // --- Draw Grid (Masu) ---
@@ -44,11 +89,48 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
     ctx.moveTo(0, height / 2);
     ctx.lineTo(width, height / 2);
     ctx.stroke();
-    
     ctx.restore();
 
     // --- Draw Guide Character ---
-    if (char) {
+    if (paths && paths.length > 0) {
+        // Draw using SVG paths (Multi-color strokes)
+        ctx.save();
+        // KanjiVG uses a 109x109 coordinate system
+        const scale = Math.min(width, height) / 109;
+        // Center the kanji if the canvas isn't square (though it usually is)
+        const offsetX = (width - 109 * scale) / 2;
+        const offsetY = (height - 109 * scale) / 2;
+
+        ctx.translate(offsetX, offsetY);
+        ctx.scale(scale, scale);
+
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        // 1. Draw light gray underlying character for completeness
+        ctx.lineWidth = 5; // Relative to 109px box
+        ctx.strokeStyle = '#f1f5f9'; // Very light gray
+        paths.forEach((pathData) => {
+            const path = new Path2D(pathData);
+            ctx.stroke(path);
+        });
+
+        // 2. Draw colored strokes on top
+        ctx.lineWidth = 4; // Slightly thinner than background
+        paths.forEach((pathData, index) => {
+            const path = new Path2D(pathData);
+            ctx.strokeStyle = STROKE_COLORS[index % STROKE_COLORS.length];
+            ctx.stroke(path);
+            
+            // Optional: Draw start point dot
+            // This is hard to calculate perfectly from path data without complex parsing, 
+            // so we stick to simple coloring for now.
+        });
+
+        ctx.restore();
+
+    } else if (char) {
+        // Fallback to Font
         ctx.save();
         // Use Yuji Syuku for better Tehon visualization (Hane, Tome)
         ctx.font = `${width * 0.8}px 'Yuji Syuku', 'Klee One', serif`;
@@ -104,7 +186,7 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
             guideCtx.scale(dpr, dpr);
             // Wait for font to load before drawing if possible, or just draw
             document.fonts.ready.then(() => {
-                drawGuide(guideCtx, width, height, guideCharacter);
+                drawGuide(guideCtx, width, height, guideCharacter, svgPaths);
             });
         }
     };
@@ -119,7 +201,7 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
     resizeObserver.observe(container);
 
     return () => resizeObserver.disconnect();
-  }, [guideCharacter]); // Re-run if guide character changes
+  }, [guideCharacter, svgPaths]); // Re-run if guide character or paths change
 
   useImperativeHandle(ref, () => ({
     clear: () => {

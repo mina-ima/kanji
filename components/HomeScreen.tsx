@@ -28,10 +28,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectGrade }) => {
          <div className="inline-block p-4 bg-white rounded-full shadow-xl mb-4">
             <PencilIcon className="w-16 h-16 text-orange-500" />
          </div>
-         <h2 className="font-m-plus-rounded text-3xl md:text-4xl font-bold text-slate-700 mb-2">
+         <h2 className="font-potta text-3xl md:text-4xl font-bold text-slate-700 mb-2">
            どの がくねん を<br/>れんしゅう する？
          </h2>
-         <p className="text-slate-500">がくねんを えらんでね</p>
+         <p className="text-slate-500 font-klee">がくねんを えらんでね</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full">
@@ -39,7 +39,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectGrade }) => {
           <button
             key={grade}
             onClick={() => onSelectGrade(grade)}
-            className={`${getGradeColor(grade)} text-white font-m-plus-rounded font-bold text-2xl py-8 rounded-3xl shadow-lg border-b-8 active:border-b-0 active:translate-y-2 transition-all duration-150 flex flex-col items-center justify-center`}
+            className={`${getGradeColor(grade)} text-white font-potta font-bold text-2xl py-8 rounded-3xl shadow-lg border-b-8 active:border-b-0 active:translate-y-2 transition-all duration-150 flex flex-col items-center justify-center`}
           >
             <span className="text-4xl mb-1">{grade}</span>
             <span className="text-lg opacity-90">ねんせい</span>
@@ -47,7 +47,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectGrade }) => {
         ))}
       </div>
       
-      <div className="mt-12 bg-white/60 backdrop-blur-sm p-4 rounded-xl text-center text-slate-500 text-sm max-w-md">
+      <div className="mt-12 bg-white/60 backdrop-blur-sm p-4 rounded-xl text-center text-slate-500 text-sm max-w-md font-klee">
         <p>※ 2ねんせい いじょうは まだ すこししか ないよ！</p>
       </div>
     </div>

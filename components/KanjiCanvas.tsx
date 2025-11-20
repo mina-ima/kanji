@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 
 interface KanjiCanvasProps {
@@ -91,14 +92,14 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
         // --- Draw Guide Character ---
         if (guideCharacter) {
             ctx.save();
-            // Use a font that is available.
-            ctx.font = `${width * 0.8}px 'Mochiy Pop One', 'Noto Sans JP', sans-serif`;
+            // Use Klee One for textbook style
+            ctx.font = `${width * 0.8}px 'Klee One', 'Noto Sans JP', sans-serif`;
             ctx.fillStyle = '#e2e8f0'; // slate-200 (Very light gray)
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
-            // Center text with slight offset adjustment
-            ctx.fillText(guideCharacter, width / 2, height / 2 + (width * 0.05)); 
+            // Center text with slight offset adjustment for Klee One
+            ctx.fillText(guideCharacter, width / 2, height / 2 + (width * 0.03)); 
             
             ctx.restore();
         }

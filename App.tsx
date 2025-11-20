@@ -12,7 +12,7 @@ const App: React.FC = () => {
   const [selectedGrade, setSelectedGrade] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>('practice');
 
-  const headerStyle = "font-m-plus-rounded text-4xl md:text-5xl font-bold text-slate-700 text-center";
+  const headerStyle = "font-potta text-4xl md:text-5xl font-bold text-slate-700 text-center";
 
   const handleSelectGrade = (grade: number) => {
     setSelectedGrade(grade);
@@ -39,9 +39,9 @@ const App: React.FC = () => {
           かきとりれんしゅう
         </h1>
         {selectedGrade === null ? (
-            <p className="text-slate-500 text-lg">Kanji Practice Pad</p>
+            <p className="text-slate-500 text-lg mt-2 font-klee">たのしく かんじを おぼえよう！</p>
         ) : (
-            <p className="text-orange-500 font-bold text-lg mt-1 font-m-plus-rounded bg-orange-100 inline-block px-4 py-1 rounded-full">
+            <p className="text-orange-500 text-lg mt-2 font-potta bg-orange-100 inline-block px-4 py-1 rounded-full">
                 小学 {selectedGrade} 年生
             </p>
         )}
@@ -53,10 +53,10 @@ const App: React.FC = () => {
         </main>
       ) : (
         <>
-            <div className="w-full max-w-sm mx-auto bg-white/70 backdrop-blur-sm p-2 rounded-full shadow-inner flex space-x-2 mb-8">
+            <div className="w-full max-w-sm mx-auto bg-white/70 backdrop-blur-sm p-2 rounded-full shadow-inner flex space-x-2 mb-8 font-potta">
                 <button
                 onClick={() => setMode('practice')}
-                className={`w-1/2 py-3 rounded-full text-lg font-bold flex items-center justify-center transition-all duration-300 ${
+                className={`w-1/2 py-3 rounded-full text-lg flex items-center justify-center transition-all duration-300 ${
                     mode === 'practice'
                     ? 'bg-orange-500 text-white shadow-md'
                     : 'bg-transparent text-slate-500 hover:bg-amber-100'
@@ -67,7 +67,7 @@ const App: React.FC = () => {
                 </button>
                 <button
                 onClick={() => setMode('test')}
-                className={`w-1/2 py-3 rounded-full text-lg font-bold flex items-center justify-center transition-all duration-300 ${
+                className={`w-1/2 py-3 rounded-full text-lg flex items-center justify-center transition-all duration-300 ${
                     mode === 'test'
                     ? 'bg-sky-500 text-white shadow-md'
                     : 'bg-transparent text-slate-500 hover:bg-amber-100'
@@ -88,7 +88,7 @@ const App: React.FC = () => {
         </>
       )}
 
-      <footer className="text-center text-slate-400 text-sm py-4 mt-auto">
+      <footer className="text-center text-slate-400 text-sm py-4 mt-auto font-klee">
         <p>Created with Gemini API</p>
       </footer>
     </div>

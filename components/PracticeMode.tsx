@@ -216,25 +216,26 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
     <div className="w-full max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8 p-4">
       <div className="w-full max-w-sm md:w-1/2 flex flex-col items-center gap-4">
         <div className="w-full bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-md text-center">
-            <p className="text-slate-500">かんじ</p>
-            <h2 className="text-8xl font-bold text-slate-800 my-2">{currentKanji.character}</h2>
-            <div className="space-y-2 text-lg">
+            <p className="text-slate-500 font-potta">かんじ</p>
+            {/* Use Klee One for the main kanji display to show correct strokes */}
+            <h2 className="text-8xl font-bold text-slate-800 my-2 font-klee">{currentKanji.character}</h2>
+            <div className="space-y-2 text-lg font-klee">
                 <p><span className="font-bold text-slate-500">よみ:</span> <span className="text-slate-700 font-semibold">{currentKanji.reading}</span></p>
                 <p><span className="font-bold text-slate-500">いみ:</span> <span className="text-slate-700 font-semibold">{currentKanji.meaning}</span></p>
             </div>
 
             <div className="mt-6 pt-4 border-t border-slate-200">
-                <h3 className="text-lg font-bold text-slate-600 mb-3 flex items-center justify-center gap-2">
+                <h3 className="text-lg font-bold text-slate-600 mb-3 flex items-center justify-center gap-2 font-potta">
                     <DocumentTextIcon className="w-6 h-6 text-orange-400" />
                     ことば・れいぶん
                 </h3>
                 {isLoadingExamples ? (
                     <div className="flex flex-col justify-center items-center h-28">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-                        <p className="mt-3 text-slate-500">れいぶんを さがしています...</p>
+                        <p className="mt-3 text-slate-500 font-klee">れいぶんを さがしています...</p>
                     </div>
                 ) : (
-                    <ul className="space-y-2 text-left text-slate-700">
+                    <ul className="space-y-2 text-left text-slate-700 font-klee">
                         {examples.map((ex, index) => (
                             <li key={index} className="bg-amber-50 p-3 rounded-lg" style={{ lineHeight: '2.2' }}>
                                 <span className="text-lg tracking-wide"><RubyText text={ex} /></span>
@@ -251,11 +252,11 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
              <button onClick={goToNext} className="p-4 bg-white rounded-full shadow-md hover:bg-amber-100 transition-transform transform hover:scale-105 flex justify-center items-center">
                 <ArrowRightIcon className="w-6 h-6 text-slate-600" />
             </button>
-            <button onClick={handleClear} className="col-span-1 px-6 py-3 bg-white text-slate-600 font-bold rounded-full shadow-lg border border-slate-200 hover:bg-amber-100 transition-transform transform hover:scale-105 text-xl flex items-center gap-2 justify-center">
+            <button onClick={handleClear} className="col-span-1 px-6 py-3 bg-white text-slate-600 font-bold rounded-full shadow-lg border border-slate-200 hover:bg-amber-100 transition-transform transform hover:scale-105 text-xl flex items-center gap-2 justify-center font-potta">
                 <RefreshIcon className="w-6 h-6" />
                 けす
             </button>
-            <button onClick={performCorrection} disabled={!hasDrawn || isChecking} className="col-span-1 px-6 py-3 bg-orange-500 text-white font-bold rounded-full shadow-lg hover:bg-orange-600 transition-all transform hover:scale-105 text-xl flex items-center gap-2 justify-center disabled:bg-slate-300 disabled:scale-100 disabled:cursor-not-allowed">
+            <button onClick={performCorrection} disabled={!hasDrawn || isChecking} className="col-span-1 px-6 py-3 bg-orange-500 text-white font-bold rounded-full shadow-lg hover:bg-orange-600 transition-all transform hover:scale-105 text-xl flex items-center gap-2 justify-center disabled:bg-slate-300 disabled:scale-100 disabled:cursor-not-allowed font-potta">
                 {isChecking ? (
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                 ) : (
@@ -280,7 +281,7 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
         {isAutoMonitoring && !isChecking && !correction && (
              <div className="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full shadow-md flex items-center gap-2 animate-pulse z-10">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-xs font-bold text-slate-600">みています...</span>
+                <span className="text-xs font-bold text-slate-600 font-potta">みています...</span>
              </div>
         )}
 
@@ -291,8 +292,8 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
                         <XIcon className="w-5 h-5 text-slate-500" />
                     </button>
                     <SparklesIcon className="w-12 h-12 text-orange-400 mx-auto mb-2"/>
-                    <h3 className="text-xl font-bold text-slate-700 mb-4">せんせいから</h3>
-                    <p className="text-slate-600 text-lg leading-relaxed min-h-[5em]">
+                    <h3 className="text-xl font-bold text-slate-700 mb-4 font-potta">せんせいから</h3>
+                    <p className="text-slate-600 text-lg leading-relaxed min-h-[5em] font-klee">
                         {correction}
                         {isChecking && <span className="inline-block w-1 h-5 bg-slate-600 animate-pulse ml-1"></span>}
                     </p>

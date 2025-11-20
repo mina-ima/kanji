@@ -15,21 +15,23 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw }, re
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [context, setContext] = useState<CanvasRenderingContext2D | null>(null);
+  const lastPos = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (canvas) {
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
       // Set internal resolution to match display size * pixel ratio
-      canvas.width = canvas.offsetWidth * ratio;
-      canvas.height = canvas.offsetHeight * ratio;
+      // Use the larger dimension to keep it square internally if aspect ratio is slightly off
+      const size = Math.max(canvas.offsetWidth, canvas.offsetHeight) * ratio;
+      canvas.width = size;
+      canvas.height = size;
       
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        // Do not use ctx.scale here to allow dynamic coordinate mapping
-        // This ensures drawing is accurate even if the canvas CSS size changes after mount
-        ctx.strokeStyle = '#1e293b'; // slate-800 (darker ink-like color)
-        ctx.lineWidth = 4 * ratio; // Thinner line for ballpoint pen feel
+        ctx.strokeStyle = '#1e293b'; // slate-800 (Dark ballpoint ink)
+        ctx.fillStyle = '#1e293b';   // Match fill for dots
+        ctx.lineWidth = 5 * ratio;     // Medium thickness (Sign pen / Gel pen style)
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         setContext(ctx);
@@ -42,26 +44,39 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw }, re
     
     const { offsetX, offsetY } = getCoordinates(event);
     if (context) {
+      setIsDrawing(true);
+      lastPos.current = { x: offsetX, y: offsetY };
+
+      // Draw a dot for the initial touch/click to mimic a ballpoint pen touching paper
+      context.beginPath();
+      context.arc(offsetX, offsetY, context.lineWidth / 2, 0, Math.PI * 2);
+      context.fill();
+      
+      // Prepare path for movement
       context.beginPath();
       context.moveTo(offsetX, offsetY);
-      setIsDrawing(true);
     }
   };
 
   const draw = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !context) return;
+    if (!isDrawing || !context || !lastPos.current) return;
     if (event.cancelable) event.preventDefault();
     
     const { offsetX, offsetY } = getCoordinates(event);
+    
+    // Draw segment from last position to current position
+    // This prevents "stacking" of strokes and ensures uniform width regardless of direction
+    context.beginPath();
+    context.moveTo(lastPos.current.x, lastPos.current.y);
     context.lineTo(offsetX, offsetY);
     context.stroke();
+    
+    lastPos.current = { x: offsetX, y: offsetY };
   };
 
   const stopDrawing = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (context) {
-      context.closePath();
-    }
     setIsDrawing(false);
+    lastPos.current = null;
     onDraw();
   };
 
@@ -86,7 +101,6 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw }, re
     const y = clientY - rect.top;
     
     // Map display coordinates to internal canvas coordinates
-    // This handles cases where CSS scales the canvas element (responsive layout)
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 

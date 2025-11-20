@@ -64,7 +64,7 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
     setIsChecking(false);
   }, []);
 
-  // Reset current index if kanjiList changes (e.g. grade switch, although App handles this by unmounting usually)
+  // Reset current index if kanjiList changes
   useEffect(() => {
     setCurrentIndex(0);
     setExamplesCache(new Map());
@@ -78,9 +78,13 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
     setCurrentIndex((prevIndex) => (prevIndex - 1 + kanjiList.length) % kanjiList.length);
   };
   
+  // Effect for resetting the canvas when the kanji changes (Navigation)
   useEffect(() => {
     resetState();
-    
+  }, [currentIndex, resetState, kanjiList]);
+
+  // Effect for fetching data (Does NOT reset canvas)
+  useEffect(() => {
     const fetchAndCacheExamples = async (indexToFetch: number) => {
       if (!kanjiList[indexToFetch]) return;
       const kanjiChar = kanjiList[indexToFetch].character;
@@ -112,7 +116,7 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
     const nextIndex = (currentIndex + 1) % kanjiList.length;
     fetchAndCacheExamples(nextIndex);
 
-  }, [currentIndex, examplesCache, resetState, kanjiList]);
+  }, [currentIndex, examplesCache, kanjiList]); // Removed resetState from here
 
 
   const handleClear = () => {

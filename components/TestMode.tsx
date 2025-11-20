@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import KanjiCanvas, { type KanjiCanvasRef } from './KanjiCanvas';
 import { verifyKanji, getKanjiCorrectionStream, getKanjiQuiz } from '../services/geminiService';
@@ -29,7 +28,15 @@ const TestMode: React.FC<TestModeProps> = ({ kanjiList }) => {
   const [feedback, setFeedback] = useState<FeedbackState>({ status: 'idle', message: '' });
   const [isFinished, setIsFinished] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
+  
+  // Background verification state
+  const [backgroundVerification, setBackgroundVerification] = useState<boolean | null>(null);
+  const [isVerifyingInBackground, setIsVerifyingInBackground] = useState(false);
+  
   const canvasRef = useRef<KanjiCanvasRef>(null);
+  // Use ReturnType<typeof setTimeout> instead of NodeJS.Timeout to support environments without Node types
+  const backgroundTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const startTest = useCallback(() => {
     setQuestions(shuffleArray(kanjiList));
@@ -39,6 +46,7 @@ const TestMode: React.FC<TestModeProps> = ({ kanjiList }) => {
     setFeedback({ status: 'idle', message: '' });
     setIsFinished(false);
     setHasDrawn(false);
+    setBackgroundVerification(null);
     canvasRef.current?.clear();
   }, [kanjiList]);
   
@@ -61,15 +69,55 @@ const TestMode: React.FC<TestModeProps> = ({ kanjiList }) => {
     }
   }, [currentIndex, questions, isFinished, fetchQuiz]);
 
+  const handleStrokeStart = () => {
+    // Cancel any pending background check
+    if (backgroundTimerRef.current) clearTimeout(backgroundTimerRef.current);
+    // Invalidate previous result as user is modifying the kanji
+    setBackgroundVerification(null);
+    setIsVerifyingInBackground(false);
+  };
+
+  const handleStrokeEnd = () => {
+    setHasDrawn(true);
+    
+    // Schedule background check
+    if (backgroundTimerRef.current) clearTimeout(backgroundTimerRef.current);
+    backgroundTimerRef.current = setTimeout(async () => {
+        if (!canvasRef.current || canvasRef.current.isCanvasEmpty()) return;
+        
+        setIsVerifyingInBackground(true);
+        const imageData = canvasRef.current.getCanvasData();
+        if (imageData) {
+            const correctAnswer = questions[currentIndex].character;
+            const result = await verifyKanji(imageData, correctAnswer);
+            // Only update if the user hasn't started drawing again (which clears the state)
+            if (canvasRef.current && !canvasRef.current.isCanvasEmpty()) {
+                 setBackgroundVerification(result);
+            }
+        }
+        setIsVerifyingInBackground(false);
+    }, 1200); // Wait 1.2s after stop writing
+  };
+
   const handleCheckAnswer = async () => {
     if (!canvasRef.current || canvasRef.current.isCanvasEmpty()) return;
 
     setIsSubmitting(true);
     const imageData = canvasRef.current.getCanvasData();
+    const correctAnswer = questions[currentIndex].character;
+
+    let isCorrect = false;
+
+    // Use background result if available, otherwise fetch now
+    if (backgroundVerification !== null) {
+        isCorrect = backgroundVerification;
+    } else {
+        if (imageData) {
+            isCorrect = await verifyKanji(imageData, correctAnswer);
+        }
+    }
+    
     if (imageData) {
-      const correctAnswer = questions[currentIndex].character;
-      const isCorrect = await verifyKanji(imageData, correctAnswer);
-      
       if (isCorrect) {
         setFeedback({ status: 'correct', message: 'せいかい！' });
         setScore((s) => s + 1);
@@ -104,6 +152,7 @@ const TestMode: React.FC<TestModeProps> = ({ kanjiList }) => {
       setFeedback({ status: 'idle', message: '' });
       canvasRef.current?.clear();
       setHasDrawn(false);
+      setBackgroundVerification(null);
     } else {
       setIsFinished(true);
     }
@@ -150,7 +199,7 @@ const TestMode: React.FC<TestModeProps> = ({ kanjiList }) => {
       </div>
 
       <div className="w-full relative">
-        <KanjiCanvas ref={canvasRef} onDraw={() => setHasDrawn(true)} />
+        <KanjiCanvas ref={canvasRef} onDraw={() => {}} onStrokeStart={handleStrokeStart} onStrokeEnd={handleStrokeEnd} />
         {feedback.status !== 'idle' && (
             <div className={`absolute inset-0 flex flex-col justify-center items-center rounded-2xl bg-opacity-90 transition-opacity p-4 ${feedback.status === 'correct' ? 'bg-green-100' : 'bg-red-100'}`}>
                 {feedback.status === 'correct' ?
@@ -178,14 +227,18 @@ const TestMode: React.FC<TestModeProps> = ({ kanjiList }) => {
           <button
             onClick={handleCheckAnswer}
             disabled={isSubmitting || !hasDrawn || isGeneratingQuiz}
-            className="w-full px-8 py-4 bg-sky-500 text-white font-bold rounded-full shadow-lg hover:bg-sky-600 transition-all transform hover:scale-105 text-xl disabled:bg-slate-300 disabled:scale-100 disabled:cursor-not-allowed flex items-center justify-center"
+            className="w-full px-8 py-4 bg-sky-500 text-white font-bold rounded-full shadow-lg hover:bg-sky-600 transition-all transform hover:scale-105 text-xl disabled:bg-slate-300 disabled:scale-100 disabled:cursor-not-allowed flex items-center justify-center relative overflow-hidden"
           >
             {isSubmitting ? (
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
             ) : (
                 <>
-                <CheckIcon className="w-6 h-6 mr-2" />
-                こたえあわせ
+                    <CheckIcon className="w-6 h-6 mr-2" />
+                    こたえあわせ
+                    {/* Indication that background check is done or happening */}
+                    {backgroundVerification !== null && !isSubmitting && (
+                         <span className="absolute top-1 right-1 w-2 h-2 bg-green-300 rounded-full animate-ping"></span>
+                    )}
                 </>
             )}
           </button>

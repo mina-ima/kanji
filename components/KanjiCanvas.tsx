@@ -1,8 +1,9 @@
-
 import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 
 interface KanjiCanvasProps {
   onDraw: () => void;
+  onStrokeStart?: () => void;
+  onStrokeEnd?: () => void;
 }
 
 export interface KanjiCanvasRef {
@@ -11,7 +12,7 @@ export interface KanjiCanvasRef {
   isCanvasEmpty: () => boolean;
 }
 
-const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw }, ref) => {
+const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onStrokeStart, onStrokeEnd }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [context, setContext] = useState<CanvasRenderingContext2D | null>(null);
@@ -41,6 +42,7 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw }, re
 
   const startDrawing = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (event.cancelable) event.preventDefault();
+    if (onStrokeStart) onStrokeStart();
     
     const { offsetX, offsetY } = getCoordinates(event);
     if (context) {
@@ -75,9 +77,12 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw }, re
   };
 
   const stopDrawing = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    setIsDrawing(false);
-    lastPos.current = null;
-    onDraw();
+    if (isDrawing) {
+        setIsDrawing(false);
+        lastPos.current = null;
+        onDraw();
+        if (onStrokeEnd) onStrokeEnd();
+    }
   };
 
   const getCoordinates = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {

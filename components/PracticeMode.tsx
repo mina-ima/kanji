@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import KanjiCanvas, { type KanjiCanvasRef } from './KanjiCanvas';
 import { getKanjiCorrectionStream, getKanjiExamples } from '../services/geminiService';
@@ -49,11 +48,16 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const [isAutoMonitoring, setIsAutoMonitoring] = useState(false);
   const [correction, setCorrection] = useState<string | null>(null);
   const [examples, setExamples] = useState<string[]>([]);
   const [isLoadingExamples, setIsLoadingExamples] = useState(false);
   const [examplesCache, setExamplesCache] = useState<Map<string, string[]>>(new Map());
+  
   const canvasRef = useRef<KanjiCanvasRef>(null);
+  // Use ReturnType<typeof setTimeout> instead of NodeJS.Timeout to support environments without Node types
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const currentKanji: Kanji = kanjiList[currentIndex];
 
@@ -62,6 +66,9 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
     setHasDrawn(false);
     setCorrection(null);
     setIsChecking(false);
+    setIsAutoMonitoring(false);
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if (abortControllerRef.current) abortControllerRef.current.abort();
   }, []);
 
   // Reset current index if kanjiList changes
@@ -139,26 +146,69 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
   const handleClear = () => {
     canvasRef.current?.clear();
     setHasDrawn(false);
+    setCorrection(null);
+    setIsChecking(false);
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if (abortControllerRef.current) abortControllerRef.current.abort();
   }
 
-  const handleCorrection = async () => {
-    if (!canvasRef.current || canvasRef.current.isCanvasEmpty() || isChecking) return;
+  const performCorrection = async () => {
+    if (!canvasRef.current || canvasRef.current.isCanvasEmpty()) return;
 
     setIsChecking(true);
+    setIsAutoMonitoring(false); // Switch from monitoring to active checking
     setCorrection("");
+    
+    // Abort previous requests if any
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+
     const imageData = canvasRef.current.getCanvasData();
     if (imageData) {
         try {
             const stream = await getKanjiCorrectionStream(imageData, currentKanji.character);
+            let fullText = "";
             for await (const chunk of stream) {
-                setCorrection(prev => (prev ?? "") + chunk.text);
+                // Check if aborted (user started drawing again)
+                if (abortControllerRef.current?.signal.aborted) {
+                    break;
+                }
+                fullText += chunk.text;
+                setCorrection(fullText);
             }
         } catch(e) {
-            console.error(e);
-            setCorrection("ごめんなさい、うまく みれませんでした。");
+            if (!abortControllerRef.current?.signal.aborted) {
+                console.error(e);
+                setCorrection("ごめんなさい、うまく みれませんでした。");
+            }
         }
     }
-    setIsChecking(false);
+    if (!abortControllerRef.current?.signal.aborted) {
+        setIsChecking(false);
+    }
+  };
+
+  const handleStrokeStart = () => {
+    // User started drawing, cancel any pending auto-check or ongoing check
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    if (isChecking) {
+        // If already checking, we abort because the user is adding more strokes
+        if (abortControllerRef.current) abortControllerRef.current.abort();
+        setIsChecking(false);
+        setCorrection(null); // Hide partial result
+    }
+    setIsAutoMonitoring(false);
+  };
+
+  const handleStrokeEnd = () => {
+    setHasDrawn(true);
+    setIsAutoMonitoring(true); // Show "Watching" state
+    
+    // Start debounce timer
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+        performCorrection();
+    }, 1500); // Wait 1.5 seconds after last stroke
   };
 
   return (
@@ -204,7 +254,7 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
                 <RefreshIcon className="w-6 h-6" />
                 けす
             </button>
-            <button onClick={handleCorrection} disabled={!hasDrawn || isChecking} className="col-span-1 px-6 py-3 bg-orange-500 text-white font-bold rounded-full shadow-lg hover:bg-orange-600 transition-all transform hover:scale-105 text-xl flex items-center gap-2 justify-center disabled:bg-slate-300 disabled:scale-100 disabled:cursor-not-allowed">
+            <button onClick={performCorrection} disabled={!hasDrawn || isChecking} className="col-span-1 px-6 py-3 bg-orange-500 text-white font-bold rounded-full shadow-lg hover:bg-orange-600 transition-all transform hover:scale-105 text-xl flex items-center gap-2 justify-center disabled:bg-slate-300 disabled:scale-100 disabled:cursor-not-allowed">
                 {isChecking ? (
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                 ) : (
@@ -217,9 +267,18 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
         </div>
       </div>
       <div className="w-full max-w-sm md:w-1/2 relative">
-        <KanjiCanvas ref={canvasRef} onDraw={() => setHasDrawn(true)}/>
+        <KanjiCanvas ref={canvasRef} onDraw={() => {}} onStrokeStart={handleStrokeStart} onStrokeEnd={handleStrokeEnd}/>
+        
+        {/* Auto-monitoring Indicator */}
+        {isAutoMonitoring && !isChecking && !correction && (
+             <div className="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full shadow-md flex items-center gap-2 animate-pulse">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-xs font-bold text-slate-600">みています...</span>
+             </div>
+        )}
+
         {correction !== null && (
-            <div className="absolute inset-0 flex flex-col justify-center items-center rounded-2xl bg-black/50 p-4 z-10">
+            <div className="absolute inset-0 flex flex-col justify-center items-center rounded-2xl bg-black/50 p-4 z-10 animate-fade-in">
                 <div className="bg-white rounded-2xl shadow-xl p-6 text-center w-full relative">
                     <button onClick={() => setCorrection(null)} className="absolute top-2 right-2 p-2 rounded-full hover:bg-slate-100">
                         <XIcon className="w-5 h-5 text-slate-500" />

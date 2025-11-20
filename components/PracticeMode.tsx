@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import KanjiCanvas, { type KanjiCanvasRef } from './KanjiCanvas';
+import ColorKanjiDisplay from './ColorKanjiDisplay';
 import { getKanjiCorrectionStream, getKanjiExamples } from '../services/geminiService';
 import type { Kanji } from '../types';
 import { ArrowLeftIcon, ArrowRightIcon, RefreshIcon, SparklesIcon, XIcon, DocumentTextIcon } from './Icons';
@@ -222,8 +223,11 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
                 <span>かんじ</span>
                 <span className="bg-slate-100 px-2 py-1 rounded-md text-slate-500 text-sm">{currentKanji.strokeCount} かく</span>
             </div>
-            {/* Use Yuji Syuku for display as well to match Tehon */}
-            <h2 className="text-9xl font-bold text-slate-800 my-2 font-yuji">{currentKanji.character}</h2>
+            
+            <div className="flex justify-center my-4">
+                <ColorKanjiDisplay character={currentKanji.character} className="w-40 h-40" />
+            </div>
+            
             <div className="space-y-2 text-lg font-klee">
                 <p><span className="font-bold text-slate-500">よみ:</span> <span className="text-slate-700 font-semibold">{currentKanji.reading}</span></p>
                 <p><span className="font-bold text-slate-500">いみ:</span> <span className="text-slate-700 font-semibold">{currentKanji.meaning}</span></p>

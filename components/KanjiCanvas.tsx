@@ -50,8 +50,8 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
     // --- Draw Guide Character ---
     if (char) {
         ctx.save();
-        // Use Yuji Syuku for better Tehon visualization (Hane, Tome)
-        ctx.font = `${width * 0.8}px 'Yuji Syuku', 'Klee One', serif`;
+        // Use Klee One for better Tehon visualization (Standard Textbook Style)
+        ctx.font = `${width * 0.8}px 'Klee One', sans-serif`;
         ctx.fillStyle = '#e2e8f0'; // slate-200
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';

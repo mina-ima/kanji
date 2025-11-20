@@ -66,7 +66,7 @@ const ColorKanjiDisplay: React.FC<ColorKanjiDisplayProps> = ({ character, classN
 
   // Fallback to font display if no paths
   if (strokes.length === 0) {
-    return <div className={`font-yuji flex items-center justify-center text-slate-800 ${className}`} style={{fontSize: '8rem'}}>{character}</div>;
+    return <div className={`font-klee flex items-center justify-center text-slate-800 ${className}`} style={{fontSize: '8rem'}}>{character}</div>;
   }
 
   return (

@@ -1,7 +1,17 @@
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { grade1Kanji } from './kanjiData';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+// Initialize lazily to avoid global scope execution which can crash if process is undefined
+let aiClient: GoogleGenAI | null = null;
+
+const getAiClient = (): GoogleGenAI => {
+  if (!aiClient) {
+    // Safe access to process.env to prevent ReferenceError in browsers
+    const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
+    aiClient = new GoogleGenAI({ apiKey: apiKey as string });
+  }
+  return aiClient;
+};
 
 function base64ToGenerativePart(base64: string, mimeType: string) {
   return {
@@ -13,8 +23,8 @@ function base64ToGenerativePart(base64: string, mimeType: string) {
 }
 
 export const recognizeKanji = async (imageDataUrl: string): Promise<string> => {
-  if (!imageDataUrl || !process.env.API_KEY) {
-    console.error("Image data or API key is missing.");
+  if (!imageDataUrl) {
+    console.error("Image data is missing.");
     return "";
   }
   
@@ -25,6 +35,7 @@ export const recognizeKanji = async (imageDataUrl: string): Promise<string> => {
       text: "Identify the single Japanese Kanji character in this image. Respond with only the character itself and no other text or explanation.",
     };
 
+    const ai = getAiClient();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: { parts: [imagePart, textPart] }
@@ -41,8 +52,8 @@ export const recognizeKanji = async (imageDataUrl: string): Promise<string> => {
 };
 
 export const getKanjiCorrectionStream = async (imageDataUrl: string, correctKanji: string): Promise<AsyncGenerator<GenerateContentResponse>> => {
-  if (!imageDataUrl || !process.env.API_KEY) {
-    throw new Error("Image data or API key is missing.");
+  if (!imageDataUrl) {
+    throw new Error("Image data is missing.");
   }
 
   const imagePart = base64ToGenerativePart(imageDataUrl, "image/png");
@@ -52,6 +63,7 @@ export const getKanjiCorrectionStream = async (imageDataUrl: string, correctKanj
   };
 
   try {
+    const ai = getAiClient();
     const responseStream = await ai.models.generateContentStream({
       model: 'gemini-2.5-flash',
       contents: { parts: [imagePart, textPart] }
@@ -61,7 +73,7 @@ export const getKanjiCorrectionStream = async (imageDataUrl: string, correctKanj
     console.error("Error getting Kanji correction stream:", error);
     // Return a stream that yields an error message
     async function* errorStream() {
-      yield { text: () => "ごめんなさい、うまく みれませんでした。もういちど やってみてね。" };
+      yield { text: "ごめんなさい、うまく みれませんでした。もういちど やってみてね。" } as any;
     }
     return errorStream() as unknown as AsyncGenerator<GenerateContentResponse>;
   }
@@ -69,14 +81,15 @@ export const getKanjiCorrectionStream = async (imageDataUrl: string, correctKanj
 
 
 export const getKanjiExamples = async (kanji: string): Promise<string[]> => {
-    if (!kanji || !process.env.API_KEY) {
-        console.error("Kanji or API key is missing.");
+    if (!kanji) {
+        console.error("Kanji is missing.");
         return [];
     }
 
     const grade1KanjiList = grade1Kanji.map(k => k.character).join(', ');
 
     try {
+        const ai = getAiClient();
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `日本の小学生向けの国語の先生として振る舞ってください。与えられた漢字「${kanji}」を使った単語や短い例文を3つ生成してください。
@@ -115,12 +128,13 @@ export const getKanjiExamples = async (kanji: string): Promise<string[]> => {
 };
 
 export const getKanjiQuiz = async (kanji: string): Promise<{ quizSentence: string; answer: string; }> => {
-    if (!kanji || !process.env.API_KEY) {
-        console.error("Kanji or API key is missing.");
+    if (!kanji) {
+        console.error("Kanji is missing.");
         return { quizSentence: "問題を作れませんでした。", answer: kanji };
     }
 
     try {
+        const ai = getAiClient();
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: `日本の小学1年生向けの漢字テストの問題を1つ作ってください。

@@ -86,8 +86,15 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
   // Effect for fetching data (Does NOT reset canvas)
   useEffect(() => {
     const fetchAndCacheExamples = async (indexToFetch: number) => {
-      if (!kanjiList[indexToFetch]) return;
-      const kanjiChar = kanjiList[indexToFetch].character;
+      const kanjiObj = kanjiList[indexToFetch];
+      if (!kanjiObj) return;
+
+      // 1. Check Static Data first
+      if (kanjiObj.examples && kanjiObj.examples.length > 0) {
+          return; // Already have data, no need to fetch or cache
+      }
+
+      const kanjiChar = kanjiObj.character;
       if (examplesCache.has(kanjiChar)) {
         return; // Already cached or being fetched
       }
@@ -98,8 +105,18 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
     };
 
     const loadCurrentKanjiData = async () => {
+        const current = kanjiList[currentIndex];
+        
+        // 1. Check Static Data (Fastest)
+        if (current.examples && current.examples.length > 0) {
+            setExamples(current.examples);
+            setIsLoadingExamples(false);
+            return;
+        }
+
+        // 2. Check Cache or Fetch API
         setIsLoadingExamples(true);
-        const kanjiChar = kanjiList[currentIndex].character;
+        const kanjiChar = current.character;
         if (examplesCache.has(kanjiChar) && examplesCache.get(kanjiChar)!.length > 0) {
             setExamples(examplesCache.get(kanjiChar)!);
         } else {
@@ -116,7 +133,7 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
     const nextIndex = (currentIndex + 1) % kanjiList.length;
     fetchAndCacheExamples(nextIndex);
 
-  }, [currentIndex, examplesCache, kanjiList]); // Removed resetState from here
+  }, [currentIndex, examplesCache, kanjiList]);
 
 
   const handleClear = () => {

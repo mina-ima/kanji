@@ -28,8 +28,8 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw }, re
       if (ctx) {
         // Do not use ctx.scale here to allow dynamic coordinate mapping
         // This ensures drawing is accurate even if the canvas CSS size changes after mount
-        ctx.strokeStyle = '#334155'; // slate-700
-        ctx.lineWidth = 8 * ratio; // Manually scale line width
+        ctx.strokeStyle = '#1e293b'; // slate-800 (darker ink-like color)
+        ctx.lineWidth = 4 * ratio; // Thinner line for ballpoint pen feel
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         setContext(ctx);

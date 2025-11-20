@@ -218,36 +218,38 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
       
       {/* Left Column: Kanji Info */}
       <div className="w-full max-w-sm md:w-1/2 flex flex-col items-center gap-4">
-        <div className="w-full bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-md text-center">
-            <div className="flex justify-between items-center text-slate-400 font-potta mb-2">
+        <div className="w-full bg-white/80 backdrop-blur-sm p-5 rounded-2xl shadow-md text-center">
+            <div className="flex justify-between items-center text-slate-400 font-potta mb-1">
                 <span>かんじ</span>
                 <span className="bg-slate-100 px-2 py-1 rounded-md text-slate-500 text-sm">{currentKanji.strokeCount} かく</span>
             </div>
             
-            <div className="flex justify-center my-4">
-                <ColorKanjiDisplay character={currentKanji.character} className="w-40 h-40" />
+            <div className="flex justify-center my-2">
+                {/* Increased size from w-40 h-40 to w-64 h-64 */}
+                <ColorKanjiDisplay character={currentKanji.character} className="w-64 h-64" />
             </div>
             
-            <div className="space-y-2 text-lg font-klee">
-                <p><span className="font-bold text-slate-500">よみ:</span> <span className="text-slate-700 font-semibold">{currentKanji.reading}</span></p>
-                <p><span className="font-bold text-slate-500">いみ:</span> <span className="text-slate-700 font-semibold">{currentKanji.meaning}</span></p>
+            <div className="space-y-1 text-lg font-klee">
+                <p><span className="font-bold text-slate-500 text-sm">よみ:</span> <span className="text-slate-700 font-semibold">{currentKanji.reading}</span></p>
+                <p><span className="font-bold text-slate-500 text-sm">いみ:</span> <span className="text-slate-700 font-semibold">{currentKanji.meaning}</span></p>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-200">
-                <h3 className="text-lg font-bold text-slate-600 mb-3 flex items-center justify-center gap-2 font-potta">
-                    <DocumentTextIcon className="w-6 h-6 text-orange-400" />
+            <div className="mt-4 pt-2 border-t border-slate-200">
+                <h3 className="text-base font-bold text-slate-600 mb-2 flex items-center justify-center gap-2 font-potta">
+                    <DocumentTextIcon className="w-5 h-5 text-orange-400" />
                     ことば・れいぶん
                 </h3>
                 {isLoadingExamples ? (
-                    <div className="flex flex-col justify-center items-center h-28">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-                        <p className="mt-3 text-slate-500 font-klee">れいぶんを さがしています...</p>
+                    <div className="flex flex-col justify-center items-center h-20">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
+                        <p className="mt-2 text-slate-500 text-xs font-klee">さがしています...</p>
                     </div>
                 ) : (
-                    <ul className="space-y-2 text-left text-slate-700 font-klee">
+                    <ul className="space-y-1 text-left text-slate-700 font-klee">
                         {examples.map((ex, index) => (
-                            <li key={index} className="bg-amber-50 p-3 rounded-lg" style={{ lineHeight: '2.2' }}>
-                                <span className="text-lg tracking-wide"><RubyText text={ex} /></span>
+                            <li key={index} className="bg-amber-50 px-3 py-2 rounded-md" style={{ lineHeight: '1.5' }}>
+                                {/* Compact display for examples */}
+                                <span className="text-sm tracking-wide"><RubyText text={ex} /></span>
                             </li>
                         ))}
                     </ul>

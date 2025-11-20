@@ -1,6 +1,6 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import KanjiCanvas, { type KanjiCanvasRef } from './KanjiCanvas';
-import { grade1Kanji } from '../services/kanjiData';
 import { recognizeKanji, getKanjiCorrectionStream, getKanjiQuiz } from '../services/geminiService';
 import type { Kanji } from '../types';
 import { CheckIcon, XIcon, ArrowRightIcon } from './Icons';
@@ -11,11 +11,15 @@ type FeedbackState = {
   correction?: string;
 };
 
+interface TestModeProps {
+    kanjiList: Kanji[];
+}
+
 const shuffleArray = <T,>(array: T[]): T[] => {
   return [...array].sort(() => Math.random() - 0.5);
 };
 
-const TestMode: React.FC = () => {
+const TestMode: React.FC<TestModeProps> = ({ kanjiList }) => {
   const [questions, setQuestions] = useState<Kanji[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [quizSentence, setQuizSentence] = useState('');
@@ -28,7 +32,7 @@ const TestMode: React.FC = () => {
   const canvasRef = useRef<KanjiCanvasRef>(null);
 
   const startTest = useCallback(() => {
-    setQuestions(shuffleArray(grade1Kanji));
+    setQuestions(shuffleArray(kanjiList));
     setCurrentIndex(0);
     setScore(0);
     setIsSubmitting(false);
@@ -36,7 +40,7 @@ const TestMode: React.FC = () => {
     setIsFinished(false);
     setHasDrawn(false);
     canvasRef.current?.clear();
-  }, []);
+  }, [kanjiList]);
   
   useEffect(() => {
     startTest();

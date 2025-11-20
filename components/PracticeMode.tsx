@@ -1,9 +1,13 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import KanjiCanvas, { type KanjiCanvasRef } from './KanjiCanvas';
-import { grade1Kanji } from '../services/kanjiData';
 import { getKanjiCorrectionStream, getKanjiExamples } from '../services/geminiService';
 import type { Kanji } from '../types';
 import { ArrowLeftIcon, ArrowRightIcon, RefreshIcon, SparklesIcon, XIcon, DocumentTextIcon } from './Icons';
+
+interface PracticeModeProps {
+    kanjiList: Kanji[];
+}
 
 // Helper component to render text with ruby characters for furigana
 const RubyText: React.FC<{ text: string }> = ({ text }) => {
@@ -41,7 +45,7 @@ const RubyText: React.FC<{ text: string }> = ({ text }) => {
   return <>{elements.map((el, i) => <React.Fragment key={i}>{el}</React.Fragment>)}</>;
 };
 
-const PracticeMode: React.FC = () => {
+const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
@@ -51,7 +55,7 @@ const PracticeMode: React.FC = () => {
   const [examplesCache, setExamplesCache] = useState<Map<string, string[]>>(new Map());
   const canvasRef = useRef<KanjiCanvasRef>(null);
 
-  const currentKanji: Kanji = grade1Kanji[currentIndex];
+  const currentKanji: Kanji = kanjiList[currentIndex];
 
   const resetState = useCallback(() => {
     canvasRef.current?.clear();
@@ -60,19 +64,26 @@ const PracticeMode: React.FC = () => {
     setIsChecking(false);
   }, []);
 
+  // Reset current index if kanjiList changes (e.g. grade switch, although App handles this by unmounting usually)
+  useEffect(() => {
+    setCurrentIndex(0);
+    setExamplesCache(new Map());
+  }, [kanjiList]);
+
   const goToNext = () => {
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % grade1Kanji.length);
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % kanjiList.length);
   };
 
   const goToPrevious = () => {
-    setCurrentIndex((prevIndex) => (prevIndex - 1 + grade1Kanji.length) % grade1Kanji.length);
+    setCurrentIndex((prevIndex) => (prevIndex - 1 + kanjiList.length) % kanjiList.length);
   };
   
   useEffect(() => {
     resetState();
     
     const fetchAndCacheExamples = async (indexToFetch: number) => {
-      const kanjiChar = grade1Kanji[indexToFetch].character;
+      if (!kanjiList[indexToFetch]) return;
+      const kanjiChar = kanjiList[indexToFetch].character;
       if (examplesCache.has(kanjiChar)) {
         return; // Already cached or being fetched
       }
@@ -84,7 +95,7 @@ const PracticeMode: React.FC = () => {
 
     const loadCurrentKanjiData = async () => {
         setIsLoadingExamples(true);
-        const kanjiChar = grade1Kanji[currentIndex].character;
+        const kanjiChar = kanjiList[currentIndex].character;
         if (examplesCache.has(kanjiChar) && examplesCache.get(kanjiChar)!.length > 0) {
             setExamples(examplesCache.get(kanjiChar)!);
         } else {
@@ -98,10 +109,10 @@ const PracticeMode: React.FC = () => {
     loadCurrentKanjiData();
 
     // Prefetch next kanji
-    const nextIndex = (currentIndex + 1) % grade1Kanji.length;
+    const nextIndex = (currentIndex + 1) % kanjiList.length;
     fetchAndCacheExamples(nextIndex);
 
-  }, [currentIndex, examplesCache, resetState]);
+  }, [currentIndex, examplesCache, resetState, kanjiList]);
 
 
   const handleClear = () => {

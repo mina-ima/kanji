@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 
 interface KanjiCanvasProps {
@@ -19,13 +20,16 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw }, re
     const canvas = canvasRef.current;
     if (canvas) {
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
+      // Set internal resolution to match display size * pixel ratio
       canvas.width = canvas.offsetWidth * ratio;
       canvas.height = canvas.offsetHeight * ratio;
+      
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.scale(ratio, ratio);
+        // Do not use ctx.scale here to allow dynamic coordinate mapping
+        // This ensures drawing is accurate even if the canvas CSS size changes after mount
         ctx.strokeStyle = '#334155'; // slate-700
-        ctx.lineWidth = 8;
+        ctx.lineWidth = 8 * ratio; // Manually scale line width
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         setContext(ctx);
@@ -34,7 +38,8 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw }, re
   }, []);
 
   const startDrawing = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    event.preventDefault();
+    if (event.cancelable) event.preventDefault();
+    
     const { offsetX, offsetY } = getCoordinates(event);
     if (context) {
       context.beginPath();
@@ -45,13 +50,14 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw }, re
 
   const draw = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawing || !context) return;
-    event.preventDefault();
+    if (event.cancelable) event.preventDefault();
+    
     const { offsetX, offsetY } = getCoordinates(event);
     context.lineTo(offsetX, offsetY);
     context.stroke();
   };
 
-  const stopDrawing = () => {
+  const stopDrawing = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (context) {
       context.closePath();
     }
@@ -62,16 +68,31 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw }, re
   const getCoordinates = (event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return { offsetX: 0, offsetY: 0 };
+    
     const rect = canvas.getBoundingClientRect();
+    let clientX, clientY;
+    
     if ('touches' in event) {
-        return {
-            offsetX: event.touches[0].clientX - rect.left,
-            offsetY: event.touches[0].clientY - rect.top
-        };
+        const touch = (event as unknown as React.TouchEvent).touches[0];
+        clientX = touch.clientX;
+        clientY = touch.clientY;
+    } else {
+        const mouse = event as unknown as React.MouseEvent;
+        clientX = mouse.clientX;
+        clientY = mouse.clientY;
     }
+
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    
+    // Map display coordinates to internal canvas coordinates
+    // This handles cases where CSS scales the canvas element (responsive layout)
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
     return {
-        offsetX: event.clientX - rect.left,
-        offsetY: event.clientY - rect.top
+        offsetX: x * scaleX,
+        offsetY: y * scaleY
     };
   }
 

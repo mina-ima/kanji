@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import PracticeMode from './components/PracticeMode';
 import TestMode from './components/TestMode';
@@ -36,10 +35,10 @@ const App: React.FC = () => {
              </button>
         )}
         <h1 className={`${headerStyle} drop-shadow-md`}>
-          かきとりれんしゅう
+          書き取り練習
         </h1>
         {selectedGrade === null ? (
-            <p className="text-slate-500 text-lg mt-2 font-klee">たのしく かんじを おぼえよう！</p>
+            <p className="text-slate-500 text-lg mt-2 font-klee">楽しく 漢字を 覚えよう！</p>
         ) : (
             <p className="text-orange-500 text-lg mt-2 font-potta bg-orange-100 inline-block px-4 py-1 rounded-full">
                 小学 {selectedGrade} 年生
@@ -63,7 +62,7 @@ const App: React.FC = () => {
                 }`}
                 >
                 <BookOpenIcon className="w-6 h-6 mr-2" />
-                れんしゅう
+                練習
                 </button>
                 <button
                 onClick={() => setMode('test')}
@@ -74,7 +73,7 @@ const App: React.FC = () => {
                 }`}
                 >
                 <PencilIcon className="w-6 h-6 mr-2" />
-                てすと
+                テスト
                 </button>
             </div>
 

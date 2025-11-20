@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { PencilIcon } from './Icons';
 
@@ -29,9 +28,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectGrade }) => {
             <PencilIcon className="w-16 h-16 text-orange-500" />
          </div>
          <h2 className="font-potta text-3xl md:text-4xl font-bold text-slate-700 mb-2">
-           どの がくねん を<br/>れんしゅう する？
+           どの 学年 を<br/>練習 する？
          </h2>
-         <p className="text-slate-500 font-klee">がくねんを えらんでね</p>
+         <p className="text-slate-500 font-klee">学年を 選んでね</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full">
@@ -42,13 +41,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onSelectGrade }) => {
             className={`${getGradeColor(grade)} text-white font-potta font-bold text-2xl py-8 rounded-3xl shadow-lg border-b-8 active:border-b-0 active:translate-y-2 transition-all duration-150 flex flex-col items-center justify-center`}
           >
             <span className="text-4xl mb-1">{grade}</span>
-            <span className="text-lg opacity-90">ねんせい</span>
+            <span className="text-lg opacity-90">年生</span>
           </button>
         ))}
       </div>
       
       <div className="mt-12 bg-white/60 backdrop-blur-sm p-4 rounded-xl text-center text-slate-500 text-sm max-w-md font-klee">
-        <p>※ 2ねんせい いじょうは まだ すこししか ないよ！</p>
+        <p>※ 2年生 以上は まだ 少ししか ないよ！</p>
       </div>
     </div>
   );

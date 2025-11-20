@@ -24,17 +24,17 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
 
   // Initialize Drawing Canvas and Guide Canvas
   useEffect(() => {
-    const container = containerRef.current;
     const canvas = canvasRef.current;
     const guideCanvas = guideCanvasRef.current;
 
-    if (container && canvas && guideCanvas) {
+    if (canvas && guideCanvas) {
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
-      // Use the container's size. Assumes container is constrained by CSS.
-      const rect = container.getBoundingClientRect();
+      
+      // Measure the actual canvas element size (inner size excluding border of container)
+      const rect = canvas.getBoundingClientRect();
       const size = Math.max(rect.width, rect.height) * ratio;
 
-      // Set dimensions for both canvases
+      // Set dimensions for both canvases (Physical pixels)
       canvas.width = size;
       canvas.height = size;
       guideCanvas.width = size;
@@ -48,7 +48,7 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
         // Re-setting width clears context, so set styles after
         ctx.strokeStyle = '#1e293b'; // slate-800
         ctx.fillStyle = '#1e293b';
-        ctx.lineWidth = 5; // Base line width
+        ctx.lineWidth = 5; // Base line width (CSS pixels)
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         setContext(ctx);
@@ -154,20 +154,18 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
       setIsDrawing(true);
       lastPos.current = { x: offsetX, y: offsetY };
 
-      const ratio = Math.max(window.devicePixelRatio || 1, 1);
-      const scaledX = offsetX * ratio;
-      const scaledY = offsetY * ratio;
-
-      context.lineWidth = 5 * ratio;
+      // Ensure lineWidth is consistent
+      context.lineWidth = 5;
       
       context.beginPath();
-      context.arc(scaledX, scaledY, context.lineWidth / 2, 0, Math.PI * 2);
+      // Use logical coordinates (ctx.scale handles the ratio)
+      context.arc(offsetX, offsetY, context.lineWidth / 2, 0, Math.PI * 2);
       context.fill();
       
       context.beginPath();
-      context.moveTo(scaledX, scaledY);
+      context.moveTo(offsetX, offsetY);
       
-      lastPos.current = { x: scaledX, y: scaledY };
+      lastPos.current = { x: offsetX, y: offsetY };
     }
   };
 
@@ -176,16 +174,13 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
     if (event.cancelable) event.preventDefault();
     
     const { offsetX, offsetY } = getCoordinates(event);
-    const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    const scaledX = offsetX * ratio;
-    const scaledY = offsetY * ratio;
     
     context.beginPath();
     context.moveTo(lastPos.current.x, lastPos.current.y);
-    context.lineTo(scaledX, scaledY);
+    context.lineTo(offsetX, offsetY);
     context.stroke();
     
-    lastPos.current = { x: scaledX, y: scaledY };
+    lastPos.current = { x: offsetX, y: offsetY };
   };
 
   const stopDrawing = () => {
@@ -198,10 +193,12 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
   };
 
   const getCoordinates = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-    const container = containerRef.current;
-    if (!container) return { offsetX: 0, offsetY: 0 };
+    // Use canvasRef instead of containerRef to get dimensions of the drawing area (inner box)
+    // This avoids offsets caused by borders on the container.
+    const canvas = canvasRef.current;
+    if (!canvas) return { offsetX: 0, offsetY: 0 };
     
-    const rect = container.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
     let clientX, clientY;
     
     if ('touches' in event) {

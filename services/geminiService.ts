@@ -7,9 +7,30 @@ let aiClient: GoogleGenAI | null = null;
 
 const getAiClient = (): GoogleGenAI => {
   if (!aiClient) {
-    // Safe access to process.env to prevent ReferenceError in browsers
-    const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : '';
-    aiClient = new GoogleGenAI({ apiKey: apiKey as string });
+    let apiKey = '';
+
+    // 1. Try Vite environment variable (VITE_API_KEY) via import.meta.env
+    // This is required for Vercel/Vite deployments
+    try {
+        // @ts-ignore
+        if (typeof import.meta !== 'undefined' && import.meta.env) {
+            // @ts-ignore
+            apiKey = import.meta.env.VITE_API_KEY || '';
+        }
+    } catch (e) {
+        // Ignore if import.meta is not supported
+    }
+
+    // 2. Fallback to process.env (for Node.js or AI Studio environment)
+    if (!apiKey && typeof process !== 'undefined' && process.env) {
+        apiKey = process.env.API_KEY || process.env.VITE_API_KEY || '';
+    }
+
+    if (!apiKey) {
+        console.warn("API Key is missing. Please set VITE_API_KEY in your Vercel project settings.");
+    }
+
+    aiClient = new GoogleGenAI({ apiKey });
   }
   return aiClient;
 };

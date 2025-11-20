@@ -4,5 +4,6 @@ export interface Kanji {
   grade: number;
   reading: string;
   meaning: string;
+  strokeCount: number;
   examples?: string[];
 }

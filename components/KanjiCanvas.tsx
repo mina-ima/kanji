@@ -50,7 +50,8 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
     // --- Draw Guide Character ---
     if (char) {
         ctx.save();
-        ctx.font = `${width * 0.8}px 'Klee One', 'Noto Sans JP', sans-serif`;
+        // Use Yuji Syuku for better Tehon visualization (Hane, Tome)
+        ctx.font = `${width * 0.8}px 'Yuji Syuku', 'Klee One', serif`;
         ctx.fillStyle = '#e2e8f0'; // slate-200
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -101,7 +102,10 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
 
         if (guideCtx) {
             guideCtx.scale(dpr, dpr);
-            drawGuide(guideCtx, width, height, guideCharacter);
+            // Wait for font to load before drawing if possible, or just draw
+            document.fonts.ready.then(() => {
+                drawGuide(guideCtx, width, height, guideCharacter);
+            });
         }
     };
 

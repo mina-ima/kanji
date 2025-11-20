@@ -213,12 +213,17 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8 p-4">
+    <div className="w-full max-w-5xl mx-auto flex flex-col md:flex-row items-start justify-center gap-8 p-4">
+      
+      {/* Left Column: Kanji Info */}
       <div className="w-full max-w-sm md:w-1/2 flex flex-col items-center gap-4">
         <div className="w-full bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-md text-center">
-            <p className="text-slate-500 font-potta">かんじ</p>
-            {/* Use Klee One for the main kanji display to show correct strokes */}
-            <h2 className="text-8xl font-bold text-slate-800 my-2 font-klee">{currentKanji.character}</h2>
+            <div className="flex justify-between items-center text-slate-400 font-potta mb-2">
+                <span>かんじ</span>
+                <span className="bg-slate-100 px-2 py-1 rounded-md text-slate-500 text-sm">{currentKanji.strokeCount} かく</span>
+            </div>
+            {/* Use Yuji Syuku for display as well to match Tehon */}
+            <h2 className="text-9xl font-bold text-slate-800 my-2 font-yuji">{currentKanji.character}</h2>
             <div className="space-y-2 text-lg font-klee">
                 <p><span className="font-bold text-slate-500">よみ:</span> <span className="text-slate-700 font-semibold">{currentKanji.reading}</span></p>
                 <p><span className="font-bold text-slate-500">いみ:</span> <span className="text-slate-700 font-semibold">{currentKanji.meaning}</span></p>
@@ -268,38 +273,45 @@ const PracticeMode: React.FC<PracticeModeProps> = ({ kanjiList }) => {
             </button>
         </div>
       </div>
-      <div className="w-full max-w-sm md:w-1/2 relative">
-        <KanjiCanvas 
-            ref={canvasRef} 
-            onDraw={() => {}} 
-            onStrokeStart={handleStrokeStart} 
-            onStrokeEnd={handleStrokeEnd}
-            guideCharacter={currentKanji.character}
-        />
-        
-        {/* Auto-monitoring Indicator */}
-        {isAutoMonitoring && !isChecking && !correction && (
-             <div className="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full shadow-md flex items-center gap-2 animate-pulse z-10">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-xs font-bold text-slate-600 font-potta">みています...</span>
-             </div>
-        )}
 
-        {correction !== null && (
-            <div className="absolute inset-0 flex flex-col justify-center items-center rounded-2xl bg-black/50 p-4 z-20 animate-fade-in">
-                <div className="bg-white rounded-2xl shadow-xl p-6 text-center w-full relative">
+      {/* Right Column: Canvas & Feedback */}
+      <div className="w-full max-w-sm md:w-1/2 flex flex-col gap-4">
+        <div className="relative">
+            <KanjiCanvas 
+                ref={canvasRef} 
+                onDraw={() => {}} 
+                onStrokeStart={handleStrokeStart} 
+                onStrokeEnd={handleStrokeEnd}
+                guideCharacter={currentKanji.character}
+            />
+            
+            {/* Auto-monitoring Indicator (top right of canvas) */}
+            {isAutoMonitoring && !isChecking && !correction && (
+                <div className="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full shadow-md flex items-center gap-2 animate-pulse z-10">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-xs font-bold text-slate-600 font-potta">みています...</span>
+                </div>
+            )}
+        </div>
+
+        {/* Feedback Section - Moves below canvas to prevent obscuring */}
+        <div className={`transition-all duration-500 ease-in-out ${correction ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none h-0'}`}>
+            {correction !== null && (
+                <div className="bg-white rounded-2xl shadow-xl p-6 text-center w-full relative border-2 border-orange-100">
                     <button onClick={() => setCorrection(null)} className="absolute top-2 right-2 p-2 rounded-full hover:bg-slate-100">
                         <XIcon className="w-5 h-5 text-slate-500" />
                     </button>
-                    <SparklesIcon className="w-12 h-12 text-orange-400 mx-auto mb-2"/>
-                    <h3 className="text-xl font-bold text-slate-700 mb-4 font-potta">せんせいから</h3>
-                    <p className="text-slate-600 text-lg leading-relaxed min-h-[5em] font-klee">
+                    <div className="flex items-center justify-center gap-2 mb-2">
+                        <SparklesIcon className="w-8 h-8 text-orange-400"/>
+                        <h3 className="text-xl font-bold text-slate-700 font-potta">せんせいから</h3>
+                    </div>
+                    <p className="text-slate-600 text-lg leading-relaxed font-klee text-left bg-orange-50 p-4 rounded-lg">
                         {correction}
                         {isChecking && <span className="inline-block w-1 h-5 bg-slate-600 animate-pulse ml-1"></span>}
                     </p>
                 </div>
-            </div>
-        )}
+            )}
+        </div>
       </div>
     </div>
   );

@@ -5,7 +5,7 @@ interface KanjiCanvasProps {
   onDraw: () => void;
   onStrokeStart?: () => void;
   onStrokeEnd?: () => void;
-  guideCharacter?: string; // New prop for the guide character
+  guideCharacter?: string;
 }
 
 export interface KanjiCanvasRef {
@@ -19,168 +19,202 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const guideCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [context, setContext] = useState<CanvasRenderingContext2D | null>(null);
+  // We store the context in a ref to access it in event handlers without re-renders
+  const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const lastPos = useRef<{ x: number; y: number } | null>(null);
 
-  // Initialize Drawing Canvas and Guide Canvas
+  // Helper to draw the background grid and guide character
+  const drawGuide = (ctx: CanvasRenderingContext2D, width: number, height: number, char?: string) => {
+    ctx.clearRect(0, 0, width, height);
+    
+    // --- Draw Grid (Masu) ---
+    ctx.save();
+    ctx.strokeStyle = '#cbd5e1'; // slate-300
+    ctx.lineWidth = 2; 
+    ctx.setLineDash([width * 0.02, width * 0.02]); 
+    
+    // Vertical center line
+    ctx.beginPath();
+    ctx.moveTo(width / 2, 0);
+    ctx.lineTo(width / 2, height);
+    ctx.stroke();
+    
+    // Horizontal center line
+    ctx.beginPath();
+    ctx.moveTo(0, height / 2);
+    ctx.lineTo(width, height / 2);
+    ctx.stroke();
+    
+    ctx.restore();
+
+    // --- Draw Guide Character ---
+    if (char) {
+        ctx.save();
+        ctx.font = `${width * 0.8}px 'Klee One', 'Noto Sans JP', sans-serif`;
+        ctx.fillStyle = '#e2e8f0'; // slate-200
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        // Center text adjustment
+        ctx.fillText(char, width / 2, height / 2 + (width * 0.03)); 
+        ctx.restore();
+    }
+  };
+
+  // Initialize and handle resizing
   useEffect(() => {
+    const container = containerRef.current;
     const canvas = canvasRef.current;
     const guideCanvas = guideCanvasRef.current;
 
-    if (canvas && guideCanvas) {
-      const ratio = Math.max(window.devicePixelRatio || 1, 1);
-      
-      // Measure the actual canvas element size (inner size excluding border of container)
-      const rect = canvas.getBoundingClientRect();
-      const size = Math.max(rect.width, rect.height) * ratio;
+    if (!container || !canvas || !guideCanvas) return;
 
-      // Set dimensions for both canvases (Physical pixels)
-      canvas.width = size;
-      canvas.height = size;
-      guideCanvas.width = size;
-      guideCanvas.height = size;
+    const handleResize = () => {
+        // Get the precise display size of the canvas element
+        // We use clientWidth/Height which matches the CSS pixels inside the border
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        if (width === 0 || height === 0) return;
 
-      // Initialize drawing context
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.scale(ratio, ratio); // Scale context to match device pixel ratio
-        
-        // Re-setting width clears context, so set styles after
-        ctx.strokeStyle = '#1e293b'; // slate-800
-        ctx.fillStyle = '#1e293b';
-        ctx.lineWidth = 5; // Base line width (CSS pixels)
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        setContext(ctx);
-      }
-    }
-  }, []); // Run once on mount
+        const dpr = window.devicePixelRatio || 1;
 
-  // Draw Guide Character and Grid
-  useEffect(() => {
-    const guideCanvas = guideCanvasRef.current;
-    if (guideCanvas) {
-      const ctx = guideCanvas.getContext('2d');
-      if (ctx) {
-        const width = guideCanvas.width;
-        const height = guideCanvas.height;
-        
-        ctx.clearRect(0, 0, width, height);
-        
-        // --- Draw Grid (Masu) ---
-        ctx.save();
-        ctx.strokeStyle = '#cbd5e1'; // slate-300
-        // Responsive styling based on canvas width
-        ctx.lineWidth = Math.max(1, width * 0.005); 
-        ctx.setLineDash([width * 0.02, width * 0.02]); 
-        
-        // Vertical center line
-        ctx.beginPath();
-        ctx.moveTo(width / 2, 0);
-        ctx.lineTo(width / 2, height);
-        ctx.stroke();
-        
-        // Horizontal center line
-        ctx.beginPath();
-        ctx.moveTo(0, height / 2);
-        ctx.lineTo(width, height / 2);
-        ctx.stroke();
-        
-        ctx.restore();
-        // ------------------------
+        // 1. Set the physical buffer size (High DPI)
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        guideCanvas.width = width * dpr;
+        guideCanvas.height = height * dpr;
 
-        // --- Draw Guide Character ---
-        if (guideCharacter) {
-            ctx.save();
-            // Use Klee One for textbook style
-            ctx.font = `${width * 0.8}px 'Klee One', 'Noto Sans JP', sans-serif`;
-            ctx.fillStyle = '#e2e8f0'; // slate-200 (Very light gray)
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            
-            // Center text with slight offset adjustment for Klee One
-            ctx.fillText(guideCharacter, width / 2, height / 2 + (width * 0.03)); 
-            
-            ctx.restore();
+        // 2. Scale the context so drawing operations use CSS pixels (0 to width)
+        // This fixes the 1/4 size issue and coordinate complexity
+        const ctx = canvas.getContext('2d');
+        const guideCtx = guideCanvas.getContext('2d');
+
+        if (ctx) {
+            ctx.scale(dpr, dpr);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = '#1e293b';
+            ctx.fillStyle = '#1e293b';
+            ctx.lineWidth = 6; // Visual thickness in CSS pixels
+            contextRef.current = ctx;
         }
-      }
-    }
-  }, [guideCharacter]); // Re-run when guide character changes
+
+        if (guideCtx) {
+            guideCtx.scale(dpr, dpr);
+            drawGuide(guideCtx, width, height, guideCharacter);
+        }
+    };
+
+    // Initial setup
+    handleResize();
+
+    // Watch for size changes
+    const resizeObserver = new ResizeObserver(() => {
+        handleResize();
+    });
+    resizeObserver.observe(container);
+
+    return () => resizeObserver.disconnect();
+  }, [guideCharacter]); // Re-run if guide character changes
 
   useImperativeHandle(ref, () => ({
     clear: () => {
       const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
+      const ctx = contextRef.current;
       if (canvas && ctx) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Clear using the logical size (since context is scaled)
+        // We calculate logical size from buffer size
+        const dpr = window.devicePixelRatio || 1;
+        ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
       }
     },
     getCanvasData: () => {
       const canvas = canvasRef.current;
       if (!canvas) return null;
       
-      // Create a temporary canvas to flatten the image with a WHITE background
       const tempCanvas = document.createElement('canvas');
       tempCanvas.width = canvas.width;
       tempCanvas.height = canvas.height;
       const tempCtx = tempCanvas.getContext('2d');
       
       if (tempCtx) {
-        // 1. Fill with white
         tempCtx.fillStyle = '#FFFFFF';
         tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-        
-        // 2. Draw the user's strokes on top
         tempCtx.drawImage(canvas, 0, 0);
-        
-        // 3. Export as JPEG
         return tempCanvas.toDataURL('image/jpeg', 0.9);
       }
       return null;
     },
     isCanvasEmpty: () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return true;
-      return false; 
+       // A simple check if canvas is effectively empty could be added here,
+       // but for now we rely on state management in parent
+       return false; 
     }
   }));
 
-  const startDrawing = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-    if (event.cancelable && event.type !== 'mousedown') event.preventDefault(); 
+  const getCoordinates = (event: React.MouseEvent | React.TouchEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    // getBoundingClientRect returns the position relative to the viewport
+    // This automatically accounts for scroll position
+    const rect = canvas.getBoundingClientRect();
+
+    let clientX, clientY;
+    if ('touches' in event) {
+        clientX = event.touches[0].clientX;
+        clientY = event.touches[0].clientY;
+    } else {
+        const mouseEvent = event as React.MouseEvent;
+        clientX = mouseEvent.clientX;
+        clientY = mouseEvent.clientY;
+    }
+
+    // Since we used ctx.scale(dpr, dpr), we can just use CSS pixel difference.
+    // This avoids the "offset" and "1/4 size" bugs caused by manual scaling errors.
+    return {
+        x: clientX - rect.left,
+        y: clientY - rect.top
+    };
+  };
+
+  const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
+    // Prevent default only for touch to stop scrolling, but allow mouse interaction
+    if (event.cancelable && event.type !== 'mousedown') event.preventDefault();
     if (onStrokeStart) onStrokeStart();
     
-    const { offsetX, offsetY } = getCoordinates(event);
-    if (context) {
+    const { x, y } = getCoordinates(event);
+    const ctx = contextRef.current;
+    
+    if (ctx) {
       setIsDrawing(true);
-      lastPos.current = { x: offsetX, y: offsetY };
+      lastPos.current = { x, y };
 
-      // Ensure lineWidth is consistent
-      context.lineWidth = 5;
+      ctx.beginPath();
+      // Draw a dot
+      ctx.arc(x, y, ctx.lineWidth / 2, 0, Math.PI * 2);
+      ctx.fill();
       
-      context.beginPath();
-      // Use logical coordinates (ctx.scale handles the ratio)
-      context.arc(offsetX, offsetY, context.lineWidth / 2, 0, Math.PI * 2);
-      context.fill();
-      
-      context.beginPath();
-      context.moveTo(offsetX, offsetY);
-      
-      lastPos.current = { x: offsetX, y: offsetY };
+      ctx.beginPath();
+      ctx.moveTo(x, y);
     }
   };
 
-  const draw = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-    if (!isDrawing || !context || !lastPos.current) return;
-    if (event.cancelable) event.preventDefault();
+  const draw = (event: React.MouseEvent | React.TouchEvent) => {
+    if (!isDrawing || !lastPos.current) return;
+    if (event.cancelable) event.preventDefault(); // Vital for preventing scroll on mobile
     
-    const { offsetX, offsetY } = getCoordinates(event);
+    const { x, y } = getCoordinates(event);
+    const ctx = contextRef.current;
     
-    context.beginPath();
-    context.moveTo(lastPos.current.x, lastPos.current.y);
-    context.lineTo(offsetX, offsetY);
-    context.stroke();
-    
-    lastPos.current = { x: offsetX, y: offsetY };
+    if (ctx) {
+        ctx.beginPath();
+        ctx.moveTo(lastPos.current.x, lastPos.current.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        
+        lastPos.current = { x, y };
+    }
   };
 
   const stopDrawing = () => {
@@ -192,53 +226,28 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
     }
   };
 
-  const getCoordinates = (event: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-    // Use canvasRef instead of containerRef to get dimensions of the drawing area (inner box)
-    // This avoids offsets caused by borders on the container.
-    const canvas = canvasRef.current;
-    if (!canvas) return { offsetX: 0, offsetY: 0 };
-    
-    const rect = canvas.getBoundingClientRect();
-    let clientX, clientY;
-    
-    if ('touches' in event) {
-        const touch = (event as unknown as React.TouchEvent).touches[0];
-        clientX = touch.clientX;
-        clientY = touch.clientY;
-    } else {
-        const mouseEvent = event as unknown as React.MouseEvent;
-        clientX = mouseEvent.clientX;
-        clientY = mouseEvent.clientY;
-    }
-    
-    return {
-        offsetX: clientX - rect.left,
-        offsetY: clientY - rect.top
-    };
-  };
-
   return (
     <div 
         ref={containerRef}
-        className="relative w-full touch-none select-none cursor-crosshair bg-white rounded-xl border-4 border-slate-200 shadow-inner"
-        style={{ aspectRatio: '1/1' }}
-        onMouseDown={startDrawing}
-        onMouseMove={draw}
-        onMouseUp={stopDrawing}
-        onMouseLeave={stopDrawing}
-        onTouchStart={startDrawing}
-        onTouchMove={draw}
-        onTouchEnd={stopDrawing}
+        className="relative w-full aspect-square bg-white rounded-xl border-4 border-slate-200 shadow-inner overflow-hidden touch-none"
+        style={{ touchAction: 'none' }} // Explicit inline style for safety
     >
-        {/* Guide Canvas (Background) */}
+        {/* Guide Canvas */}
         <canvas 
             ref={guideCanvasRef} 
-            className="absolute inset-0 w-full h-full pointer-events-none"
+            className="absolute inset-0 w-full h-full pointer-events-none block"
         />
-        {/* Drawing Canvas (Foreground) */}
+        {/* Drawing Canvas */}
         <canvas 
             ref={canvasRef} 
-            className="absolute inset-0 w-full h-full"
+            className="absolute inset-0 w-full h-full block cursor-crosshair touch-none"
+            onMouseDown={startDrawing}
+            onMouseMove={draw}
+            onMouseUp={stopDrawing}
+            onMouseLeave={stopDrawing}
+            onTouchStart={startDrawing}
+            onTouchMove={draw}
+            onTouchEnd={stopDrawing}
         />
     </div>
   );

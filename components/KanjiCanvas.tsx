@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 
 interface KanjiCanvasProps {
@@ -47,7 +48,8 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
       try {
         // Convert character to hex unicode (e.g., 漢 -> 6f22)
         const code = guideCharacter.charCodeAt(0).toString(16).toLowerCase().padStart(5, '0');
-        const url = `https://cdn.jsdelivr.net/npm/kanjivg@5/kanji/${code}.svg`;
+        // Use GitHub CDN for reliable access to raw KanjiVG files
+        const url = `https://cdn.jsdelivr.net/gh/KanjiVG/kanjivg@master/kanji/${code}.svg`;
         
         const response = await fetch(url);
         if (!response.ok) throw new Error('Kanji data not found');
@@ -55,9 +57,18 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
         const text = await response.text();
         const parser = new DOMParser();
         const doc = parser.parseFromString(text, 'image/svg+xml');
-        const paths = Array.from(doc.querySelectorAll('path')).map(p => p.getAttribute('d') || '');
+        // Select all paths that don't have 'clip-path' in their ID (to avoid clip paths)
+        // KanjiVG strokes are standard <path> elements.
+        const paths = Array.from(doc.querySelectorAll('path'))
+            .filter(p => !p.getAttribute('id')?.includes('kvg:')) // Filter out structural groups if selected by mistake
+            .map(p => p.getAttribute('d') || '');
+            
+        // Actually, querySelectorAll('path') gets all paths.
+        // KanjiVG structure: <g id="kvg:StrokePaths_..."> <path d="..." /> ... </g>
+        // We just want the 'd' attributes of all paths.
+        const allPaths = Array.from(doc.querySelectorAll('path')).map(p => p.getAttribute('d') || '');
         
-        setSvgPaths(paths.filter(p => p !== ''));
+        setSvgPaths(allPaths.filter(p => p !== ''));
       } catch (e) {
         console.warn('Failed to load stroke data, falling back to font:', e);
         setSvgPaths(null);
@@ -122,9 +133,7 @@ const KanjiCanvas = forwardRef<KanjiCanvasRef, KanjiCanvasProps>(({ onDraw, onSt
             ctx.strokeStyle = STROKE_COLORS[index % STROKE_COLORS.length];
             ctx.stroke(path);
             
-            // Optional: Draw start point dot
-            // This is hard to calculate perfectly from path data without complex parsing, 
-            // so we stick to simple coloring for now.
+            // Optional: Draw start point dot could be added here if we parsed coordinates
         });
 
         ctx.restore();

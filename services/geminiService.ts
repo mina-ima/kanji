@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { grade1Kanji } from './kanjiData';
 
@@ -22,6 +23,7 @@ function base64ToGenerativePart(base64: string, mimeType: string) {
   };
 }
 
+// Kept for reference, but TestMode now uses verifyKanji
 export const recognizeKanji = async (imageDataUrl: string): Promise<string> => {
   if (!imageDataUrl) {
     console.error("Image data is missing.");
@@ -51,6 +53,55 @@ export const recognizeKanji = async (imageDataUrl: string): Promise<string> => {
   }
 };
 
+// New strict verification function
+export const verifyKanji = async (imageDataUrl: string, correctKanji: string): Promise<boolean> => {
+    if (!imageDataUrl) return false;
+
+    try {
+        const imagePart = base64ToGenerativePart(imageDataUrl, "image/png");
+        const ai = getAiClient();
+        
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: {
+                parts: [
+                    imagePart,
+                    {
+                        text: `あなたは日本の小学校の先生です。画像の文字が、漢字「${correctKanji}」として正しく書かれているか、厳格に採点してください。
+以下の基準で判断し、JSON形式で { "isCorrect": boolean } を返してください。
+
+【不合格（false）とする基準】
+1. 線のはみ出し（突き抜けてはいけない線が突き抜けている。例：「田」や「口」の角、「日」の真ん中の線など）。
+2. 線の長さのバランスが間違っている（例：「土」と「士」の違い、「未」と「末」の違いなど）。
+3. 必要な「はね」「とめ」「はらい」が欠けている、または不正確である。
+4. 形が大きく崩れていて、バランスが悪い。
+5. 別の漢字に見える。
+
+子供が書いたものなので、線の多少の震えは許容しますが、字形の構造的な間違い（はみ出しや長さ）は厳しく判定してください。`
+                    }
+                ]
+            },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        isCorrect: { type: Type.BOOLEAN, description: "Whether the kanji is written correctly according to strict standards." }
+                    },
+                    required: ["isCorrect"]
+                }
+            }
+        });
+
+        const result = JSON.parse(response.text.trim());
+        return result.isCorrect;
+
+    } catch (error) {
+        console.error("Error verifying Kanji:", error);
+        return false;
+    }
+};
+
 export const getKanjiCorrectionStream = async (imageDataUrl: string, correctKanji: string): Promise<AsyncGenerator<GenerateContentResponse>> => {
   if (!imageDataUrl) {
     throw new Error("Image data is missing.");
@@ -59,7 +110,13 @@ export const getKanjiCorrectionStream = async (imageDataUrl: string, correctKanj
   const imagePart = base64ToGenerativePart(imageDataUrl, "image/png");
   
   const textPart = {
-    text: `これは小学生向けの漢字練習アプリです。画像の手書き文字は「${correctKanji}」という漢字を書こうとしたものです。優しい先生のように、ひらがなで添削してください。全体のバランスに加えて、「とめ」「はね」「はらい」などの細かい部分もよく見て、改善点を具体的に指摘してください。良い点も忘れずに褒めてあげてください。フィードバックは親しみやすく、80文字程度でお願いします。例：「ぜんたいのバランスはいいね！さいごのはねをしっかりかくともっとじょうずになるよ。」`,
+    text: `これは小学生向けの漢字練習アプリです。画像の手書き文字は「${correctKanji}」という漢字を書こうとしたものです。優しい先生のように、ひらがなで添削してください。
+全体のバランスに加えて、以下の細かい部分を厳しくチェックして、具体的な改善点を指摘してください。
+・線がはみ出していないか（突き抜けてはいけないところ）。
+・線の長さ（上下の線の長さの違いなど）。
+・「とめ」「はね」「はらい」。
+
+良い点も忘れずに褒めてあげてください。フィードバックは親しみやすく、80文字程度でお願いします。例：「おしい！かたちのバランスはいいね。でも、よこぼうが つきぬけているよ。もういちど かいてみよう。」`,
   };
 
   try {

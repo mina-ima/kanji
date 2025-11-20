@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import KanjiCanvas, { type KanjiCanvasRef } from './KanjiCanvas';
-import { recognizeKanji, getKanjiCorrectionStream, getKanjiQuiz } from '../services/geminiService';
+import { verifyKanji, getKanjiCorrectionStream, getKanjiQuiz } from '../services/geminiService';
 import type { Kanji } from '../types';
 import { CheckIcon, XIcon, ArrowRightIcon } from './Icons';
 
@@ -67,17 +67,17 @@ const TestMode: React.FC<TestModeProps> = ({ kanjiList }) => {
     setIsSubmitting(true);
     const imageData = canvasRef.current.getCanvasData();
     if (imageData) {
-      const recognized = await recognizeKanji(imageData);
       const correctAnswer = questions[currentIndex].character;
+      const isCorrect = await verifyKanji(imageData, correctAnswer);
       
-      if (recognized === correctAnswer) {
+      if (isCorrect) {
         setFeedback({ status: 'correct', message: 'せいかい！' });
         setScore((s) => s + 1);
         setIsSubmitting(false);
       } else {
         setFeedback({ 
             status: 'incorrect', 
-            message: `ちがうよ。こたえは「${correctAnswer}」`,
+            message: `おしい！ もういちど かいてみよう。`,
             correction: "",
         });
         try {
